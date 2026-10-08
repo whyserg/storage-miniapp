@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f7f9">
+<title>Хранилище</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+/* ============================================================
+   DESIGN SYSTEM · Neo-minimal file manager
+   ============================================================ */
+:root{
+  --r-xs:8px;--r-sm:10px;--r-md:14px;--r-lg:20px;--r-full:999px;
+  --ease:160ms cubic-bezier(.4,0,.2,1);
+  --ease-spring:420ms cubic-bezier(.34,1.4,.4,1);
+  --pad-x:18px;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --tab:14px;
+}
+:root[data-theme="light"]{
+  --bg:#f6f7f9;--surface:#ffffff;--surface-2:#f1f2f5;--surface-3:#e9ebf0;
+  --text:#101318;--text-2:#5c6770;--hint:#8a94a0;
+  --border:rgba(16,19,24,.07);--border-2:rgba(16,19,24,.13);
+  --accent:#3163eb;--accent-2:#3d7bff;--accent-soft:rgba(49,99,235,.10);--accent-grad:linear-gradient(135deg,#3d7bff,#3163eb);
+  --danger:#e5484d;--danger-soft:rgba(229,72,77,.10);
+  --success:#30a46c;--success-soft:rgba(48,164,108,.12);
+  --overlay:rgba(10,12,16,.42);--shadow-1:0 1px 2px rgba(16,19,24,.05);--shadow-2:0 12px 34px rgba(16,19,24,.12);--shadow-3:0 24px 60px rgba(16,19,24,.18);
+  --chip-img-bg:rgba(92,107,255,.14);--chip-img:#5c6bff;
+  --chip-video-bg:rgba(155,87,247,.14);--chip-video:#9b57f7;
+  --chip-audio-bg:rgba(255,122,69,.16);--chip-audio:#f26b3a;
+  --chip-arch-bg:rgba(255,171,32,.20);--chip-arch:#c78100;
+  --chip-doc-bg:rgba(48,164,108,.14);--chip-doc:#2f9e6a;
+  --chip-stick-bg:rgba(244,91,105,.14);--chip-stick:#e5485b;
+  --chip-file-bg:#eef0f4;--chip-file:#5c6770;
+  --glass:rgba(255,255,255,.72);
+  --grad-glow:radial-gradient(120% 90% at 50% -10%,rgba(61,123,255,.07),transparent 60%);
+}
+:root[data-theme="dark"]{
+  --bg:#0a0a0e;--surface:#14141a;--surface-2:#1b1b23;--surface-3:#23232d;
+  --text:#f2f3f7;--text-2:#a6aab8;--hint:#6f7482;
+  --border:rgba(255,255,255,.07);--border-2:rgba(255,255,255,.13);
+  --accent:#5b87f7;--accent-2:#7ba2ff;--accent-soft:rgba(91,135,247,.16);--accent-grad:linear-gradient(135deg,#7ba2ff,#5b87f7);
+  --danger:#f2555a;--danger-soft:rgba(242,85,90,.14);
+  --success:#3fc383;--success-soft:rgba(63,195,131,.14);
+  --overlay:rgba(0,0,0,.6);--shadow-1:0 1px 2px rgba(0,0,0,.4);--shadow-2:0 12px 34px rgba(0,0,0,.5);--shadow-3:0 24px 60px rgba(0,0,0,.65);
+  --chip-img-bg:rgba(124,138,255,.22);--chip-img:#8fa0ff;
+  --chip-video-bg:rgba(180,110,255,.22);--chip-video:#bd85ff;
+  --chip-audio-bg:rgba(255,140,90,.22);--chip-audio:#ff9a6b;
+  --chip-arch-bg:rgba(255,183,64,.22);--chip-arch:#ffc352;
+  --chip-doc-bg:rgba(63,195,131,.22);--chip-doc:#55d596;
+  --chip-stick-bg:rgba(255,110,122,.22);--chip-stick:#ff7b89;
+  --chip-file-bg:#23232d;--chip-file:#a6aab8;
+  --glass:rgba(20,20,26,.66);
+  --grad-glow:radial-gradient(120% 90% at 50% -10%,rgba(91,135,247,.10),transparent 60%);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--font);font-size:15px;line-height:1.45;
+  overscroll-behavior:none;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
+  transition:background-color 220ms ease,color 220ms ease;
+}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+input{font:inherit;color:inherit}
+input[type=search]::-webkit-search-cancel-button{display:none}
+::selection{background:var(--accent-soft)}
+.icon{display:inline-flex;align-items:center;justify-content:center;flex:none}
+img{max-width:100%}
+#app{min-height:100dvh;display:flex;flex-direction:column;position:relative}
+.app-glow{position:fixed;inset:0;pointer-events:none;z-index:0;background:var(--grad-glow)}
+#app>*{position:relative;z-index:1}
+
+/* ============ HEADER (glass) ============ */
+.app-header{
+  position:sticky;top:0;z-index:30;
+  padding:calc(env(safe-area-inset-top,0px) + 12px) var(--pad-x) 10px;
+  background:var(--glass);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+  border-bottom:1px solid var(--border);
+}
+.app-header::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent-grad);opacity:.9}
+.header-top{display:flex;align-items:center;gap:10px;min-height:42px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.brand-logo{
+  width:38px;height:38px;border-radius:11px;background:var(--accent-grad);
+  display:flex;align-items:center;justify-content:center;color:#fff;flex:none;
+  box-shadow:0 6px 16px rgba(49,99,235,.35);
+}
+.brand-title{margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-sub{font-size:11.5px;color:var(--hint);font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-actions{display:flex;align-items:center;gap:6px}
+
+/* ============ TOOLBAR ============ */
+.toolbar{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.search{
+  display:flex;align-items:center;gap:9px;height:42px;padding:0 10px 0 14px;border-radius:var(--r-sm);
+  background:var(--surface-2);color:var(--hint);border:1.5px solid transparent;
+  transition:background var(--ease),box-shadow var(--ease),border-color var(--ease);
+}
+.search:focus-within{background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);color:var(--accent)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--text);font-size:15px}
+.search input::placeholder{color:var(--hint)}
+.search .clear{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;color:var(--hint);transition:background var(--ease),color var(--ease)}
+.search .clear:hover{background:var(--surface-3);color:var(--text)}
+.filter-row{display:flex;align-items:center;gap:8px}
+.segmented{
+  display:flex;gap:3px;padding:4px;border-radius:12px;background:var(--surface-2);flex:1;position:relative;
+}
+.segmented .seg-thumb{
+  position:absolute;top:4px;bottom:4px;border-radius:9px;background:var(--surface);
+  box-shadow:var(--shadow-1);transition:left 260ms var(--ease),width 260ms var(--ease);
+}
+.segmented button{
+  position:relative;flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;height:32px;padding:0 8px;border-radius:9px;
+  font-size:13px;font-weight:600;color:var(--hint);transition:color var(--ease);z-index:1;white-space:nowrap;
+}
+.segmented button:hover{color:var(--text-2)}
+.segmented button[aria-pressed=true]{color:var(--text)}
+
+/* ============ BUTTONS ============ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;padding:0 16px;border-radius:12px;
+  font-size:14px;font-weight:600;transition:transform var(--ease),background var(--ease),color var(--ease),box-shadow var(--ease),filter var(--ease);
+  white-space:nowrap;border:1px solid transparent;
+}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--accent-grad);color:#fff;box-shadow:0 6px 18px rgba(49,99,235,.3)}
+.btn-primary:hover{filter:brightness(1.06)}
+.btn-ghost{color:var(--accent);background:transparent}
+.btn-ghost:hover{background:var(--accent-soft)}
+.btn-outline{border-color:var(--border-2);color:var(--text);background:var(--surface)}
+.btn-outline:hover{background:var(--surface-2)}
+.btn-danger{background:var(--danger);color:#fff;box-shadow:0 6px 18px rgba(229,72,77,.28)}
+.btn-block{width:100%}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:11px;
+  color:var(--text-2);transition:background var(--ease),color var(--ease),transform var(--ease);flex:none;
+}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn-danger{color:var(--danger)}
+.icon-btn-danger:hover{background:var(--danger-soft);color:var(--danger)}
+.theme-switch{display:inline-flex;align-items:center;gap:2px;padding:3px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)}
+.theme-switch button{display:inline-flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:9px;color:var(--hint);transition:background var(--ease),color var(--ease)}
+.theme-switch button:hover{color:var(--text)}
+.theme-switch button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:var(--shadow-1)}
+
+/* ============ CONTENT ============ */
+.content{flex:1;padding:18px var(--pad-x) calc(env(safe-area-inset-bottom,0px) + 150px);display:flex;flex-direction:column;gap:26px}
+.stats{
+  display:flex;gap:10px;margin-top:2px;
+}
+.stat{
+  flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:var(--r-md);
+  background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-1);
+}
+.stat .icon{width:34px;height:34px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}
+.stat b{display:block;font-size:16px;font-weight:700;letter-spacing:-.01em;line-height:1.15;white-space:nowrap}
+.stat span{display:block;font-size:11.5px;color:var(--hint);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat.col-r .icon{background:var(--chip-doc-bg);color:var(--chip-doc)}
+.stat.col-v .icon{background:var(--chip-video-bg);color:var(--chip-video)}
+.section{display:flex;flex-direction:column;gap:12px}
+.section-head{display:flex;align-items:center;gap:9px;padding:0 2px}
+.section-title{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--hint)}
+.section-count{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 7px;border-radius:var(--r-full);background:var(--surface-2);font-size:11.5px;font-weight:700;color:var(--text-2);font-variant-numeric:tabular-nums}
+.spacer{flex:1}
+
+/* ============ FOLDER GRID ============ */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:640px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (min-width:900px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.folder-card{
+  position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:11px;padding:15px;
+  border-radius:var(--r-md);background:var(--surface);border:1px solid var(--border);
+  transition:transform var(--ease),box-shadow var(--ease),border-color var(--ease);
+  overflow:hidden;width:100%;animation:cardIn .4s var(--ease-spring) both;animation-delay:calc(var(--i,0)*45ms);
+}
+.folder-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-2);border-color:var(--border-2)}
+.folder-card:active{transform:scale(.97)}
+.folder-card .tile{
+  width:46px;height:46px;border-radius:13px;flex:none;
+  background:linear-gradient(135deg,hsl(var(--h,220),72%,62%),hsl(calc(var(--h,220) + 38),72%,50%));
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  box-shadow:0 8px 18px hsla(var(--h,220),70%,45%,.35);
+}
+.folder-card .info{width:100%;min-width:0}
+.folder-card .name{font-size:14.5px;font-weight:650;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-card .meta{font-size:12px;color:var(--hint);margin-top:3px;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+.folder-card .mini-dots{display:flex;gap:3px}
+.folder-card .mini-dots i{width:5px;height:5px;border-radius:50%;background:var(--border-2)}
+.folder-card .del{
+  position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  color:var(--hint);opacity:0;transition:opacity var(--ease),background var(--ease),color var(--ease);
+}
+.folder-card:hover .del{opacity:1}
+.folder-card .del:hover{background:var(--danger-soft);color:var(--danger)}
+
+/* ============ FILE LIST ============ */
+.list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-md);background:var(--surface);overflow:hidden;box-shadow:var(--shadow-1)}
+.file-row{
+  display:flex;align-items:center;gap:6px;padding:7px 10px 7px 13px;border-bottom:1px solid var(--border);
+  transition:background var(--ease);position:relative;
+  animation:rowIn .4s var(--ease) both;animation-delay:calc(var(--i,0)*28ms);
+}
+.file-row:last-child{border-bottom:0}
+.file-row:hover{background:var(--surface-2)}
+.file-row.selected{background:var(--accent-soft)}
+.file-row.selected::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--accent)}
+.file-row .main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:6px 4px;border-radius:10px}
+.chip{
+  position:relative;width:42px;height:42px;border-radius:12px;flex:none;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.chip .thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.chip .thumb-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.chip .thumb-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.chip.type-img{background:var(--chip-img-bg);color:var(--chip-img)}
+.chip.type-video{background:var(--chip-video-bg);color:var(--chip-video)}
+.chip.type-audio{background:var(--chip-audio-bg);color:var(--chip-audio)}
+.chip.type-arch{background:var(--chip-arch-bg);color:var(--chip-arch)}
+.chip.type-doc{background:var(--chip-doc-bg);color:var(--chip-doc)}
+.chip.type-stick{background:var(--chip-stick-bg);color:var(--chip-stick)}
+.chip.type-file{background:var(--chip-file-bg);color:var(--chip-file)}
+.file-row.selected .chip{transform:scale(.94)}
+.file-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.file-name{font-size:14.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.005em}
+.file-name mark{background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:0 1px}
+.file-meta{font-size:12px;color:var(--hint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:5px}
+.file-meta .tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;background:var(--surface-3);color:var(--text-2)}
+.file-row .more-btn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;color:var(--hint);transition:background var(--ease),color var(--ease);flex:none}
+.file-row .more-btn:hover{background:var(--surface-3);color:var(--text)}
+.check{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent-grad);color:#fff;flex:none;animation:pop .3s var(--ease-spring)}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ============ EMPTY / HERO ============ */
+.hero{
+  display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 22px 40px;text-align:center;
+}
+.hero .ill{position:relative;margin-bottom:12px;color:var(--hint);animation:float 5s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.hero h2{font-size:19px;font-weight:700;letter-spacing:-.02em;margin:0}
+.hero p{font-size:14px;color:var(--hint);max-width:320px;line-height:1.55;margin:0}
+.hero-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+.empty{
+  display:flex;flex-direction:column;align-items:center;gap:9px;padding:44px 22px;text-align:center;
+}
+.empty .ill{color:var(--hint);opacity:.6;margin-bottom:4px}
+.empty h3{font-size:16px;font-weight:650;margin:0}
+.empty p{font-size:13.5px;color:var(--hint);max-width:280px;line-height:1.5;margin:0}
+.empty .btn{margin-top:9px}
+
+/* ============ SKELETON ============ */
+.skeleton{position:relative;overflow:hidden;background:var(--surface-2);border-radius:var(--r-sm)}
+.skeleton::after{
+  content:"";position:absolute;inset:0;transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+  animation:shimmer 1.5s infinite;
+}
+:root[data-theme="dark"] .skeleton::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent)}
+@keyframes shimmer{100%{transform:translateX(100%)}}
+.skeleton-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.skeleton-row .sk-chip{width:42px;height:42px;border-radius:12px}
+.skeleton-row .sk-line{flex:1;height:12px;border-radius:6px}
+.skeleton-row .sk-line.s2{width:40%;opacity:.6;margin-top:6px}
+.skeleton-card{height:120px;border-radius:var(--r-md)}
+
+/* ============ FAB ============ */
+.fab{
+  position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:45;
+  width:56px;height:56px;border-radius:18px;background:var(--accent-grad);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 10px 28px rgba(49,99,235,.45);transition:transform var(--ease),filter var(--ease),box-shadow var(--ease);
+  animation:pop .45s var(--ease-spring);
+}
+.fab:hover{filter:brightness(1.07);box-shadow:0 14px 34px rgba(49,99,235,.5)}
+.fab:active{transform:scale(.9)}
+.fab.hidden{display:none}
+
+/* ============ FLOATING BARS ============ */
+.floating{
+  position:fixed;left:var(--pad-x);right:var(--pad-x);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:48;
+  background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+  border:1px solid var(--border-2);border-radius:16px;padding:10px 12px;
+  box-shadow:var(--shadow-2);animation:rise .38s var(--ease-spring);max-width:520px;margin-left:auto;margin-right:auto;
+}
+.floating-row{display:flex;align-items:center;gap:6px}
+.floating-label{flex:1;font-size:13.5px;font-weight:600;color:var(--text-2);padding-left:6px;font-variant-numeric:tabular-nums}
+.floating-actions{display:flex;gap:3px}
+.upload-item{padding:7px 6px}
+.upload-item+.upload-item{border-top:1px solid var(--border);margin-top:6px;padding-top:12px}
+.upload-head{display:flex;align-items:baseline;gap:9px}
+.upload-name{flex:1;font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upload-pct{font-size:12px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums}
+.upload-status{font-size:11.5px;color:var(--hint);margin-top:2px}
+.progress{height:6px;border-radius:var(--r-full);background:var(--surface-3);overflow:hidden;margin-top:7px}
+.progress-bar{height:100%;width:100%;background:var(--accent-grad);transform-origin:left center;transform:scaleX(0);transition:transform 150ms linear;border-radius:var(--r-full)}
+
+/* ============ SHEET / MODAL ============ */
+.sheet-backdrop{position:fixed;inset:0;z-index:60;background:var(--overlay);display:flex;align-items:flex-end;justify-content:center;animation:fade 240ms ease;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+@media (min-width:640px){.sheet-backdrop{align-items:center;padding:20px}}
+.sheet{
+  width:100%;max-width:480px;background:var(--surface);border-radius:22px 22px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom,0px) + 22px);
+  box-shadow:var(--shadow-3);animation:sheetUp .42s var(--ease-spring);max-height:88dvh;overflow-y:auto;overscroll-behavior:contain;
+}
+@media (min-width:640px){.sheet{border-radius:22px;padding:22px 24px 24px;animation:popIn .4s var(--ease-spring)}}
+.sheet-handle{width:38px;height:5px;border-radius:var(--r-full);background:var(--border-2);margin:5px auto 16px}
+@media (min-width:640px){.sheet-handle{display:none}}
+.sheet-title{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0 0 6px;display:flex;align-items:center;gap:9px}
+.sheet-title .icon{color:var(--accent)}
+.sheet-text{font-size:13.5px;color:var(--hint);margin:0 0 18px;line-height:1.55}
+.sheet-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
+.field{
+  width:100%;height:48px;padding:0 15px;border-radius:12px;border:1.5px solid var(--border-2);
+  background:var(--surface-2);outline:none;font-size:15px;color:var(--text);
+  transition:border-color var(--ease),background var(--ease),box-shadow var(--ease);
+}
+.field:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 4px var(--accent-soft)}
+.picker{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--surface);max-height:340px;overflow-y:auto}
+.picker-item{
+  display:flex;align-items:center;gap:13px;padding:14px 16px;border-bottom:1px solid var(--border);
+  transition:background var(--ease);font-size:14.5px;font-weight:550;width:100%;
+}
+.picker-item:last-child{border-bottom:0}
+.picker-item:hover{background:var(--surface-2)}
+.picker-item .ico{width:34px;height:34px;border-radius:10px;background:var(--surface-2);color:var(--text-2);display:flex;align-items:center;justify-content:center;flex:none}
+.picker-item.danger{color:var(--danger)}
+.picker-item.danger .ico{background:var(--danger-soft);color:var(--danger)}
+.picker-item.info .ico{background:var(--accent-soft);color:var(--accent)}
+
+/* ============ TOAST ============ */
+.toasts{
+  position:fixed;top:calc(env(safe-area-inset-top,0px) + 14px);left:14px;right:14px;z-index:70;
+  display:flex;flex-direction:column;align-items:center;gap:9px;pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:11px;max-width:440px;width:100%;padding:12px 15px;border-radius:14px;
+  background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(1.6);backdrop-filter:blur(22px) saturate(1.6);
+  border:1px solid var(--border-2);box-shadow:var(--shadow-2);font-size:13.5px;font-weight:550;
+  animation:toastIn .42s var(--ease-spring);transition:opacity 240ms ease,transform 240ms ease;opacity:1;transform:none;
+}
+.toast.leaving{opacity:0;transform:translateY(-10px) scale(.96)}
+.toast .toast-ico{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none}
+.toast.ok .toast-ico{background:var(--success-soft);color:var(--success)}
+.toast.err .toast-ico{background:var(--danger-soft);color:var(--danger)}
+.toast.info .toast-ico{background:var(--accent-soft);color:var(--accent)}
+.toast span{flex:1;min-width:0}
+
+/* ============ DRAG OVERLAY ============ */
+.drop-overlay{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--overlay);animation:fade 200ms ease;pointer-events:none;padding:24px;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.drop-box{
+  display:flex;flex-direction:column;align-items:center;gap:13px;padding:40px 52px;border-radius:22px;
+  border:2px dashed var(--accent);background:var(--surface);color:var(--text);font-size:15px;font-weight:650;
+  box-shadow:var(--shadow-3);animation:dropPulse 1.6s ease-in-out infinite;
+}
+.drop-box .icon{color:var(--accent)}
+@keyframes dropPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+
+/* ============ ANIMATIONS ============ */
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes popIn{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="app-glow"></div>
+<div id="app"></div>
+<div id="toasts" class="toasts"></div>
+<input type="file" id="file-input" multiple hidden>
+
+<script>
+/* =====================================================================
+   ЗАМЕНИ 4 СТРОКИ НИЖЕ
+   ===================================================================== */
+var GITHUB_TOKEN  = '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';
+var GITHUB_REPO   = 'whyserg/storage-miniapp';
+var GITHUB_BRANCH = 'main';
+var REPO_URL      = 'https://whyserg.github.io/storage-miniapp';
+/* ===================================================================== */
+
+(function () {
+  'use strict';
+
+  var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+  if (tg) {
+    tg.ready(); tg.expand();
+    if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes();
+    if (typeof tg.enableClosingConfirmation === 'function') tg.enableClosingConfirmation();
+  }
+
+  /* ---------- Тема ---------- */
+  function readStoredTheme(){try{var v=localStorage.getItem('storage.theme');if(v==='light'||v==='dark'||v==='auto')return v}catch(e){}return 'auto'}
+  function resolveTheme(pref){if(pref==='light'||pref==='dark')return pref;if(tg&&tg.colorScheme==='dark')return 'dark';if(tg&&tg.colorScheme==='light')return 'light';return window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+  function applyTheme(pref){
+    var r=document.documentElement;r.dataset.themePref=pref;r.dataset.theme=resolveTheme(pref);
+    var m=document.querySelector('meta[name=theme-color]');
+    if(m)m.setAttribute('content',r.dataset.theme==='dark'?'#0a0a0e':'#f6f7f9');
+  }
+
+  /* ---------- Иконки ---------- */
+  var ICONS = {
+    file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+    image:'<rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+    video:'<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+    music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    archive:'<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+    sticker:'<path d="M15.5 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h9.5L21 14.5V5a2 2 0 0 0-2-2Z"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/>',
+    folder:'<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+    search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+    arrowUp:'<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+    arrowDown:'<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+    download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+    refresh:'<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+    close:'<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+    chevronLeft:'<path d="m15 18-6-6 6-6"/>',
+    plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+    upload:'<path d="M12 13v8"/><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="m8 17 4-4 4 4"/>',
+    trash:'<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+    moveTo:'<path d="M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1"/><path d="M2 13h10"/><path d="m9 16 3-3-3-3"/>',
+    check:'<path d="M20 6 9 17l-5-5"/>',
+    more:'<circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+    moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    monitor:'<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>',
+    checkCircle:'<path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/>',
+    alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+    database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>'
+  };
+  function icon(name,size){var b=ICONS[name]||ICONS.file,s=size||20;return '<svg class="icon" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+b+'</svg>'}
+
+  var ESCAPE_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  function escapeHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return ESCAPE_MAP[c]})}
+  function fmtSize(b){var v=Number(b)||0;if(v<=0)return '0 Б';var u=['Б','КБ','МБ','ГБ','ТБ'],i=0;while(v>=1024&&i<u.length-1){v/=1024;i++}return (i===0?Math.round(v)+' '+u[i]:(v<10?v.toFixed(1):String(Math.round(v)))+' '+u[i])}
+  function fmtDate(ts){var d=new Date((Number(ts)||0)*1000);if(isNaN(d.getTime()))return '';var n=new Date();if(d.toDateString()===n.toDateString())return 'Сегодня, '+d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'short',year:(d.getFullYear()!==n.getFullYear()?'numeric':undefined)})}
+  function typeInfo(mime,name){
+    var v=String(mime||'').toLowerCase();var n=String(name||'').toLowerCase();
+    if(v.indexOf('image/')===0)return {cls:'type-img',icon:'image',label:'Изображение'};
+    if(v.indexOf('video/')===0)return {cls:'type-video',icon:'video',label:'Видео'};
+    if(v.indexOf('audio/')===0)return {cls:'type-audio',icon:'music',label:'Аудио'};
+    if(v.indexOf('tgsticker')>=0||n.indexOf('.webp')>=0)return {cls:'type-stick',icon:'sticker',label:'Стикер'};
+    if(v.indexOf('zip')>=0||v.indexOf('tar')>=0||v.indexOf('rar')>=0||v.indexOf('7z')>=0||n.indexOf('.zip')>=0||n.indexOf('.rar')>=0||n.indexOf('.7z')>=0)return {cls:'type-arch',icon:'archive',label:'Архив'};
+    if(v.indexOf('pdf')>=0||v.indexOf('text')>=0||v.indexOf('word')>=0||v.indexOf('sheet')>=0||v.indexOf('officedocument')>=0||n.indexOf('.doc')>=0||n.indexOf('.docx')>=0||n.indexOf('.pdf')>=0||n.indexOf('.txt')>=0||n.indexOf('.xls')>=0||n.indexOf('.xlsx')>=0||n.indexOf('.ppt')>=0||n.indexOf('.pptx')>=0)return {cls:'type-doc',icon:'file',label:'Документ'};
+    return {cls:'type-file',icon:'file',label:'Файл'};
+  }
+  function hashHue(str){var h=0;for(var i=0;i<str.length;i++){h=(h*31+str.charCodeAt(i))>>>0}return h%360}
+  function highlight(text,q){
+    var s=escapeHtml(text);
+    var t=q.trim();if(!t)return s;
+    var lower=s.toLowerCase();var lh=t.toLowerCase();
+    if(lower.indexOf(lh)<0)return s;
+    var re=[];re.push('(');for(var i=0;i<lh.length;i++)re.push(lh[i].replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));re.push(')');
+    return s.replace(new RegExp(re.join(''),'gi'),'<mark>$1</mark>');
+  }
+
+  function uid(){return Math.random().toString(36).slice(2,10)}
+  function sanitizeName(n){return String(n||'file').replace(/[\/\\\x00-\x1f]/g,'_').slice(0,150)||'file'}
+  function bytesToB64(bytes){
+    var binary='',chunk=0x8000;
+    for(var i=0;i<bytes.length;i+=chunk){binary+=String.fromCharCode.apply(null,bytes.subarray(i,i+chunk))}
+    return btoa(binary);
+  }
+  function b64ToBytes(b64){
+    var bin=atob(b64.replace(/\s/g,'')),len=bin.length,bytes=new Uint8Array(len);
+    for(var i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);
+    return bytes;
+  }
+  function b64decode(str){return decodeURIComponent(escape(atob(String(str).replace(/\s/g,''))))}
+
+  /* ---------- GitHub API ---------- */
+  var API='https://api.github.com';
+  function ghHeaders(){return {'Authorization':'token '+GITHUB_TOKEN,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}}
+  function ghURL(path){return API+'/repos/'+GITHUB_REPO+'/contents/'+path.split('/').map(encodeURIComponent).join('/')}
+
+  function ghGet(path){
+    return fetch(ghURL(path)+'?ref='+encodeURIComponent(GITHUB_BRANCH)+'&t='+Date.now(),{headers:ghHeaders(),cache:'no-store'})
+      .then(function(r){
+        if(r.status===404)return null;
+        if(!r.ok)return r.text().then(function(t){throw new Error(t.slice(0,160))});
+        return r.json();
+      });
+  }
+  function ghPut(path,bytes,message){
+    return ghGet(path).then(function(existing){
+      var body={message:message,content:bytesToB64(bytes),branch:GITHUB_BRANCH};
+      if(existing&&existing.sha)body.sha=existing.sha;
+      return fetch(ghURL(path),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},ghHeaders()),body:JSON.stringify(body)})
+        .then(function(r){
+          if(!r.ok)return r.text().then(function(t){throw new Error(t.slice(0,160))});
+          return r.json();
+        });
+    });
+  }
+  function ghDelete(path){
+    return ghGet(path).then(function(existing){
+      if(!existing||!existing.sha)return false;
+      return fetch(ghURL(path),{method:'DELETE',headers:Object.assign({'Content-Type':'application/json'},ghHeaders()),body:JSON.stringify({message:'delete '+path,sha:existing.sha,branch:GITHUB_BRANCH})})
+        .then(function(r){return r.ok});
+    });
+  }
+
+  var DATA_PATH='data.json';
+  function loadData(){
+    return ghGet(DATA_PATH).then(function(res){
+      if(!res||!res.content)return {files:[],folders:[]};
+      try{
+        var d=JSON.parse(b64decode(res.content));
+        return {files:d.files||[],folders:d.folders||[]};
+      }catch(e){return {files:[],folders:[]}}
+    });
+  }
+  function saveData(data){
+    var content=unescape(encodeURIComponent(JSON.stringify(data,null,2)));
+    return ghPut(DATA_PATH,new TextEncoder().encode(content),'update data.json');
+  }
+
+  /* ---------- Store ---------- */
+  function createStore(init){var l=[],t=Object.assign({},init);var p=new Proxy(t,{set:function(o,k,v){if(o[k]===v)return true;o[k]=v;l.forEach(function(fn){try{fn(k)}catch(e){console.error(e)}});return true}});return {state:p,subscribe:function(fn){l.push(fn)}}}
+  var store=createStore({
+    themePref:readStoredTheme(),
+    files:[],folders:[],loading:true,
+    view:'root',folderId:null,folderName:'',
+    query:'',sort:'date',order:'desc',
+    selection:[],uploads:[],modal:null,dragging:false
+  });
+  var state=store.state,searchValue='',queued=false;
+  store.subscribe(function(){if(queued)return;queued=true;requestAnimationFrame(function(){queued=false;render()})});
+
+  function toast(msg,type){
+    var h=document.getElementById('toasts');
+    var t=type==='err'?'err':(type==='info'?'info':'ok');
+    var ic=t==='err'?'alert':(t==='info'?'search':'checkCircle');
+    var n=document.createElement('div');
+    n.className='toast '+t;
+    n.innerHTML='<span class="toast-ico">'+icon(ic,17)+'</span><span>'+escapeHtml(msg)+'</span>';
+    h.appendChild(n);
+    setTimeout(function(){n.classList.add('leaving');setTimeout(function(){n.remove()},260)},3200);
+  }
+
+  function refresh(){
+    state.loading=true;
+    loadData().then(function(d){
+      state.files=d.files||[];state.folders=d.folders||[];state.loading=false;
+    }).catch(function(e){state.loading=false;toast('Не удалось загрузить: '+(e.message||'ошибка сети'),'err')});
+  }
+
+  function openFolder(id,name){state.view='folder';state.folderId=id;state.folderName=name;state.query='';searchValue='';state.selection=[]}
+  function openRoot(){state.view='root';state.folderId=null;state.folderName='';state.query='';searchValue='';state.selection=[]}
+  var searchTimer=null;
+  function onSearch(v){searchValue=v;clearTimeout(searchTimer);searchTimer=setTimeout(function(){state.query=v.trim()},180)}
+  function setSort(k){if(state.sort===k)state.order=state.order==='asc'?'desc':'asc';else{state.sort=k;state.order=k==='name'?'asc':'desc'}}
+
+  /* ---------- Upload ---------- */
+  var uploadSeq=0;
+  function uploadFile(file){
+    var key='u'+(++uploadSeq);
+    state.uploads=state.uploads.concat([{key:key,name:file.name,progress:0,status:'Читаем файл…'}]);
+    return new Promise(function(resolve){
+      var reader=new FileReader();
+      reader.onprogress=function(e){
+        if(!e.lengthComputable)return;
+        var r=e.loaded/e.total;
+        state.uploads=state.uploads.map(function(it){return it.key===key?{key:key,name:it.name,progress:r*0.5,status:'Читаем файл…'}:it});
+      };
+      reader.onerror=function(){state.uploads=state.uploads.filter(function(it){return it.key!==key});toast('Не удалось прочитать '+file.name,'err');resolve(false)};
+      reader.onload=function(){
+        var bytes=new Uint8Array(reader.result);
+        var uniqueId=uid();
+        var repoPath='files/'+uniqueId+'_'+sanitizeName(file.name);
+        state.uploads=state.uploads.map(function(it){return it.key===key?{key:key,name:it.name,progress:0.5,status:'Загружаем в GitHub…'}:it});
+        ghPut(repoPath,bytes,'upload '+file.name).then(function(){
+          state.uploads=state.uploads.map(function(it){return it.key===key?{key:key,name:it.name,progress:0.9,status:'Сохраняем метаданные…'}:it});
+          return loadData();
+        }).then(function(data){
+          data.files.push({
+            name:file.name,
+            path:repoPath,
+            size:bytes.length,
+            mime:file.type||'application/octet-stream',
+            uploaded_at:Math.floor(Date.now()/1000),
+            unique_id:uniqueId,
+            folder_id:state.folderId||null
+          });
+          data.files.sort(function(a,b){return (b.uploaded_at||0)-(a.uploaded_at||0)});
+          return saveData(data);
+        }).then(function(){
+          state.uploads=state.uploads.filter(function(it){return it.key!==key});
+          toast('«'+file.name+'» загружен');
+          resolve(true);
+        }).catch(function(e){
+          state.uploads=state.uploads.filter(function(it){return it.key!==key});
+          toast('Ошибка загрузки «'+file.name+'»: '+(e.message||'неизвестная'),'err');
+          resolve(false);
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+  function uploadFiles(list){
+    var files=Array.prototype.slice.call(list||[]);
+    if(!files.length)return;
+    var chain=Promise.resolve();
+    files.forEach(function(f){chain=chain.then(function(){return uploadFile(f)})});
+    chain.then(function(){refresh()});
+  }
+
+  /* ---------- Действия ---------- */
+  function downloadFile(f){
+    var url=REPO_URL+'/'+f.path.split('/').map(encodeURIComponent).join('/');
+    if(tg)tg.openLink(url);else window.open(url,'_blank');
+  }
+  function toggleSel(id){if(state.selection.indexOf(id)>=0)state.selection=state.selection.filter(function(x){return x!==id});else state.selection=state.selection.concat([id])}
+  function clearSel(){state.selection=[]}
+  function selectVisible(){
+    var ids=visibleFiles().map(function(f){return f.unique_id});
+    var all=ids.every(function(id){return state.selection.indexOf(id)>=0});
+    state.selection=all?[]:ids;
+  }
+
+  function deleteSelected(){
+    var ids=state.selection.slice();
+    loadData().then(function(data){
+      var targets=data.files.filter(function(f){return ids.indexOf(f.unique_id)>=0});
+      var chain=Promise.resolve();
+      targets.forEach(function(f){
+        chain=chain.then(function(){return ghDelete(f.path).catch(function(){})});
+      });
+      return chain.then(function(){
+        data.files=data.files.filter(function(f){return ids.indexOf(f.unique_id)<0});
+        return saveData(data);
+      });
+    }).then(function(){
+      state.selection=[];state.modal=null;toast('Удалено файлов: '+ids.length);refresh();
+    }).catch(function(e){toast(e.message||'Ошибка','err')});
+  }
+  function moveSelected(fid){
+    var ids=state.selection.slice();
+    loadData().then(function(data){
+      data.files.forEach(function(f){if(ids.indexOf(f.unique_id)>=0)f.folder_id=fid});
+      return saveData(data);
+    }).then(function(){
+      state.selection=[];state.modal=null;toast('Перемещено файлов: '+ids.length);refresh();
+    }).catch(function(e){toast(e.message||'Ошибка','err')});
+  }
+  function createFolder(){
+    var inp=document.querySelector('[data-focus-key="folder-name"]');
+    var name=inp?inp.value.trim():'';
+    if(!name){toast('Введите название папки','err');return}
+    loadData().then(function(data){
+      if(data.folders.some(function(f){return f.name.toLowerCase()===name.toLowerCase()}))throw new Error('Папка «'+name+'» уже существует');
+      data.folders.push({id:uid(),name:name,created_at:Math.floor(Date.now()/1000)});
+      return saveData(data);
+    }).then(function(){state.modal=null;toast('Папка «'+name+'» создана');refresh()}).catch(function(e){toast(e.message,'err')});
+  }
+  function deleteFolder(id,name){
+    loadData().then(function(data){
+      data.folders=data.folders.filter(function(f){return f.id!==id});
+      data.files.forEach(function(f){if(f.folder_id===id)f.folder_id=null});
+      return saveData(data);
+    }).then(function(){state.modal=null;toast('Папка удалена, файлы остались в корне');refresh()}).catch(function(e){toast(e.message,'err')});
+  }
+  function findById(id){var f=null;state.files.forEach(function(x){if(x.unique_id===id)f=x});return f}
+  function downloadZip(){
+    var list=visibleFiles();
+    if(!list.length){toast('Нет файлов для архива','info');return}
+    toast('Собираем ZIP-архив…','info');
+    var chain=Promise.resolve();
+    var blobs=[];
+    list.forEach(function(f){
+      chain=chain.then(function(){
+        return fetch(ghURL(f.path)+'?ref='+encodeURIComponent(GITHUB_BRANCH),{headers:ghHeaders()})
+          .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()})
+          .then(function(j){blobs.push({name:f.name,bytes:b64ToBytes(j.content)})});
+      });
+    });
+    chain.then(function(){
+      var zip=buildZip(blobs);
+      var blob=new Blob([zip],{type:'application/zip'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url;a.download=(state.view==='folder'?state.folderName:'storage')+'.zip';
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url)},1000);
+      toast('Архив собран: '+blobs.length+' файлов');
+    }).catch(function(e){toast('Не удалось собрать архив: '+e.message,'err')});
+  }
+  function buildZip(files){
+    var chunks=[],central=[],offset=0;
+    function crc32(data){
+      var c,crc=0xFFFFFFFF;
+      for(var i=0;i<data.length;i++){
+        c=(crc^data[i])&0xFF;
+        for(var k=0;k<8;k++)c=c&1?(c>>>1)^0xEDB88320:c>>>1;
+        crc=(crc>>>8)^c;
+      }
+      return (crc^0xFFFFFFFF)>>>0;
+    }
+    function u16(n){return [n&0xFF,(n>>8)&0xFF]}
+    function u32(n){return [n&0xFF,(n>>8)&0xFF,(n>>16)&0xFF,(n>>24)&0xFF]}
+    function enc(s){return new TextEncoder().encode(s)}
+    files.forEach(function(f){
+      var nameBytes=enc(f.name);
+      var crc=crc32(f.bytes);
+      var size=f.bytes.length;
+      var local=[].concat(
+        u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),
+        u32(crc),u32(size),u32(size),u16(nameBytes.length),u16(0)
+      );
+      var localHeader=new Uint8Array(local);
+      chunks.push(localHeader,nameBytes,f.bytes);
+      var localOffset=offset;
+      offset+=localHeader.length+nameBytes.length+size;
+      var centralEntry=[].concat(
+        u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),
+        u32(crc),u32(size),u32(size),u16(nameBytes.length),
+        u16(0),u16(0),u16(0),u16(0),u32(0),u32(localOffset)
+      );
+      central.push(new Uint8Array(centralEntry),nameBytes);
+    });
+    var centralStart=offset;
+    var centralSize=central.reduce(function(s,c){return s+c.length},0);
+    var end=[].concat(
+      u32(0x06054b50),u16(0),u16(0),
+      u16(files.length),u16(files.length),
+      u32(centralSize),u32(centralStart),u16(0)
+    );
+    var parts=chunks.concat(central,[new Uint8Array(end)]);
+    var total=parts.reduce(function(s,p){return s+p.length},0);
+    var out=new Uint8Array(total),pos=0;
+    parts.forEach(function(p){out.set(p,pos);pos+=p.length});
+    return out;
+  }
+
+  /* ---------- Render ---------- */
+  function statsHtml(){
+    var totalSize=state.files.reduce(function(s,f){return s+(Number(f.size)||0)},0);
+    var nImg=state.files.filter(function(f){return typeInfo(f.mime,f.name).cls==='type-img'}).length;
+    var nVid=state.files.filter(function(f){return typeInfo(f.mime,f.name).cls==='type-video'}).length;
+    if(state.query.trim())return '';
+    return '<div class="stats">'+
+      '<div class="stat"><span class="icon">'+icon('database',18)+'</span><div><b>'+state.files.length+'</b><span>файлов</span></div></div>'+
+      '<div class="stat col-r"><span class="icon">'+icon('image',18)+'</span><div><b>'+nImg+'</b><span>изображений</span></div></div>'+
+      '<div class="stat col-v"><span class="icon">'+icon('video',18)+'</span><div><b>'+nVid+'</b><span>видео</span></div></div>'+
+      '<div class="stat"><span class="icon">'+icon('archive',18)+'</span><div><b>'+fmtSize(totalSize)+'</b><span>всего</span></div></div>'+
+      '</div>';
+  }
+  function foldersBlockHtml(){
+    if(state.loading){
+      var sk='';for(var i=0;i<4;i++)sk+='<div class="skeleton skeleton-card"></div>';
+      return '<div class="grid">'+sk+'</div>';
+    }
+    if(state.query.trim())return '';
+    if(!state.folders.length){
+      if(!state.files.length)return '';
+      return '<div class="empty"><div class="ill">'+icon('folder',44)+'</div><h3>Папок пока нет</h3><p>Создай папку, чтобы навести порядок в файлах.</p><button class="btn btn-outline" data-action="new-folder">'+icon('plus',16)+'Новая папка</button></div>';
+    }
+    return '<div class="grid">'+state.folders.map(function(f,i){
+      var count=state.files.filter(function(x){return x.folder_id===f.id}).length;
+      var size=state.files.filter(function(x){return x.folder_id===f.id}).reduce(function(s,x){return s+(Number(x.size)||0)},0);
+      var hue=hashHue(f.name);
+      return '<div style="position:relative">'+
+        '<button class="folder-card" data-action="open-folder" data-id="'+escapeHtml(f.id)+'" data-name="'+escapeHtml(f.name)+'" style="--i:'+i+';--h:'+hue+'">'+
+        '<span class="tile">'+icon('folder',22)+'</span>'+
+        '<span class="info"><span class="name">'+escapeHtml(f.name)+'</span>'+
+        '<span class="meta">'+count+' файл'+(count===1?'':'ов')+' · '+fmtSize(size)+'</span></span>'+
+        '</button>'+
+        '<button class="del" data-action="delete-folder" data-id="'+escapeHtml(f.id)+'" data-name="'+escapeHtml(f.name)+'" aria-label="Удалить папку">'+icon('trash',15)+'</button>'+
+        '</div>';
+    }).join('')+'</div>';
+  }
+  function chipHtml(f){
+    var t=typeInfo(f.mime,f.name);
+    var isImg=t.cls==='type-img';
+    if(isImg){
+      var src=encodeURI(REPO_URL+'/'+f.path);
+      return '<span class="chip '+t.cls+'"><img class="thumb" src="'+src+'" alt="" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><span class="thumb-fallback" style="display:none">'+icon(t.icon,19)+'</span></span>';
+    }
+    return '<span class="chip '+t.cls+'">'+icon(t.icon,19)+'</span>';
+  }
+  function filesBlockHtml(){
+    var list=visibleFiles();
+    if(state.loading){
+      var sk='';for(var i=0;i<5;i++)sk+='<div class="skeleton-row"><span class="skeleton sk-chip"></span><div><span class="skeleton sk-line"></span><div class="skeleton sk-line s2"></div></div></div>';
+      return '<div class="list">'+sk+'</div>';
+    }
+    if(!list.length){
+      if(state.query)return '<div class="empty"><div class="ill">'+icon('search',42)+'</div><h3>Ничего не найдено</h3><p>По запросу «'+escapeHtml(state.query)+'» файлов нет.</p><button class="btn btn-outline" data-action="clear-search">'+icon('close',15)+'Сбросить поиск</button></div>';
+      if(state.view==='folder')return '<div class="empty"><div class="ill">'+icon('folder',42)+'</div><h3>Папка пуста</h3><p>Перетащи файлы сюда или нажми на кнопку загрузки.</p><button class="btn btn-primary" data-action="pick-files">'+icon('upload',16)+'Загрузить файлы</button></div>';
+      return '';
+    }
+    var q=state.query.trim().toLowerCase();
+    return '<div class="list">'+list.map(function(f,i){
+      return fileRow(f,i,q);
+    }).join('')+'</div>';
+  }
+  function visibleFiles(){
+    var base;
+    if(state.query.trim()){
+      var q=state.query.trim().toLowerCase();
+      base=state.files.filter(function(f){return String(f.name||'').toLowerCase().indexOf(q)>=0});
+    }else{
+      base=state.files.filter(function(f){return (f.folder_id||null)===(state.folderId||null)});
+    }
+    var k=state.sort,dir=state.order==='asc'?1:-1;
+    base.sort(function(a,b){
+      var av,bv;
+      if(k==='name'){av=String(a.name||'').toLowerCase();bv=String(b.name||'').toLowerCase()}
+      else if(k==='size'){av=Number(a.size||0);bv=Number(b.size||0)}
+      else{av=Number(a.uploaded_at||0);bv=Number(b.uploaded_at||0)}
+      if(av<bv)return -1*dir;if(av>bv)return 1*dir;return 0;
+    });
+    return base;
+  }
+  function fileRow(f,i,q){
+    var sel=state.selection.indexOf(f.unique_id)>=0;
+    var t=typeInfo(f.mime,f.name);
+    var meta='<span class="tag">'+t.label+'</span><span>'+fmtSize(f.size)+'</span><span>·</span><span>'+fmtDate(f.uploaded_at)+'</span>';
+    if(q&&f.folder_id){
+      var folder=state.folders.filter(function(x){return x.id===f.folder_id})[0];
+      if(folder)meta+='<span>·</span><span>'+escapeHtml(folder.name)+'</span>';
+    }
+    return '<div class="file-row'+(sel?' selected':'')+'" data-row-id="'+escapeHtml(f.unique_id)+'" style="--i:'+i+'">'+
+      '<button class="main" data-action="row-click" data-id="'+escapeHtml(f.unique_id)+'">'+
+      chipHtml(f)+
+      '<span class="file-body">'+
+      '<span class="file-name">'+(q?highlight(f.name,q):escapeHtml(f.name))+'</span>'+
+      '<span class="file-meta">'+meta+'</span>'+
+      '</span></button>'+
+      (sel
+        ?'<span class="check">'+icon('check',13)+'</span>'
+        :'<button class="more-btn" data-action="row-more" data-id="'+escapeHtml(f.unique_id)+'" aria-label="Действия">'+icon('more',18)+'</button>')+
+      '</div>';
+  }
+  function heroHtml(){
+    var proto='<svg class="icon" width="96" height="96" viewBox="0 0 96 96" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 52V24a6 6 0 0 1 6-6h16l10 12h30a6 6 0 0 1 6 6v16"/><path d="M14 52v18a6 6 0 0 0 6 6h56a6 6 0 0 0 6-6V46H36l-10-12H20a6 6 0 0 0-6 6"/><circle cx="68" cy="62" r="14"/><path d="M68 56v12M62 62h12"/></svg>';
+    return '<div class="hero">'+
+      '<div class="ill">'+proto+'</div>'+
+      '<h2>Ваше облако пока пусто</h2>'+
+      '<p>Загрузите первые файлы — они сохранятся в GitHub и будут доступны из любого места, где есть Telegram.</p>'+
+      '<div class="hero-actions">'+
+      '<button class="btn btn-primary" data-action="pick-files">'+icon('upload',16)+'Загрузить файлы</button>'+
+      '<button class="btn btn-outline" data-action="new-folder">'+icon('plus',16)+'Новая папка</button>'+
+      '</div></div>';
+  }
+  function contentHtml(){
+    var parts=[];
+    var showHero=!state.loading&&!state.query.trim()&&!state.files.length&&!state.folders.length;
+    if(showHero){parts.push(heroHtml());return parts.join('')}
+    if(!state.query.trim())parts.push(statsHtml());
+    if(state.view==='root'){
+      parts.push('<section class="section"><div class="section-head"><h2 class="section-title">Папки</h2>'+
+        (state.folders.length?'<span class="section-count">'+state.folders.length+'</span>':'')+
+        '<span class="spacer"></span>'+
+        '<button class="icon-btn" data-action="reload" aria-label="Обновить" title="Обновить">'+icon('refresh',18)+'</button>'+
+        '</div>'+foldersBlockHtml()+'</section>');
+    }
+    var list=visibleFiles();
+    var title=state.query.trim()?'Найдено':(state.view==='root'?'Файлы в корне':'Содержимое');
+    if(state.query.trim()||list.length||(state.view==='folder')){
+      parts.push('<section class="section"><div class="section-head"><h2 class="section-title">'+title+'</h2>'+
+        (list.length?'<span class="section-count">'+list.length+'</span>':'')+
+        '<span class="spacer"></span>'+
+        (state.view==='folder'?'<button class="icon-btn" data-action="zip" aria-label="Скачать ZIP" title="Скачать всё ZIP-архивом">'+icon('archive',19)+'</button><button class="icon-btn" data-action="reload" aria-label="Обновить" title="Обновить">'+icon('refresh',18)+'</button>':'')+
+        '</div>'+filesBlockHtml()+'</section>');
+    }
+    return parts.join('');
+  }
+  function themeSwitchHtml(){
+    function b(k,n,l){return '<button type="button" data-action="set-theme" data-theme="'+k+'" aria-pressed="'+(state.themePref===k?'true':'false')+'" aria-label="'+l+'" title="'+l+'">'+icon(n,16)+'</button>'}
+    return '<div class="theme-switch" role="group" aria-label="Тема">'+b('auto','monitor','Системная')+b('light','sun','Светлая')+b('dark','moon','Тёмная')+'</div>';
+  }
+  function sortBarHtml(){
+    var items=[{k:'name',l:'Имя'},{k:'size',l:'Размер'},{k:'date',l:'Дата'}];
+    var idx=Math.max(0,items.map(function(x){return x.k}).indexOf(state.sort));
+    return '<div class="filter-row"><div class="segmented" role="group">'+
+      '<span class="seg-thumb" style="width:'+(100/items.length)+'%;left:'+(idx*100/items.length)+'%"></span>'+
+      items.map(function(it){
+        var active=state.sort===it.k;
+        return '<button type="button" data-action="sort" data-key="'+it.k+'" aria-pressed="'+(active?'true':'false')+'">'+it.l+(active?icon(state.order==='asc'?'arrowUp':'arrowDown',13):'')+'</button>';
+      }).join('')+'</div></div>';
+  }
+  function searchHtml(){
+    return '<div class="toolbar"><label class="search">'+icon('search',18)+
+      '<input type="search" placeholder="Поиск по файлам…" data-focus-key="search" value="'+escapeHtml(searchValue)+'" autocomplete="off" spellcheck="false">'+
+      (searchValue?'<button type="button" class="clear" data-action="clear-search" aria-label="Очистить">'+icon('close',15)+'</button>':'')+
+      '</label>'+sortBarHtml()+'</div>';
+  }
+  function headerHtml(){
+    var actions='<div class="header-actions">'+themeSwitchHtml();
+    if(state.view==='folder'){
+      return '<div class="header-top">'+
+        '<button class="icon-btn" data-action="back" aria-label="Назад">'+icon('chevronLeft',22)+'</button>'+
+        '<div class="brand"><div class="brand-logo">'+icon('folder',19)+'</div><div><h1 class="brand-title">'+escapeHtml(state.folderName)+'</h1><div class="brand-sub">Папка хранилища</div></div></div>'+
+        actions+
+        '<button class="icon-btn" data-action="zip" aria-label="Скачать ZIP" title="Скачать ZIP">'+icon('archive',19)+'</button>'+
+        '<button class="icon-btn" data-action="pick-files" aria-label="Загрузить" title="Загрузить">'+icon('upload',19)+'</button>'+
+        '</div></div>'+searchHtml();
+    }
+    return '<div class="header-top">'+
+      '<div class="brand"><div class="brand-logo">'+icon('folder',19)+'</div><div><h1 class="brand-title">Хранилище</h1><div class="brand-sub">Личное облако в Telegram</div></div></div>'+
+      actions+
+      '<button class="btn btn-primary" data-action="new-folder" style="height:38px;padding:0 13px;font-size:13.5px">'+icon('plus',15)+'Папка</button>'+
+      '</div></div>'+searchHtml();
+  }
+  function selectionBarHtml(){
+    if(!state.selection.length)return '';
+    return '<div class="floating"><div class="floating-row">'+
+      '<span class="floating-label">Выбрано: '+state.selection.length+'</span>'+
+      '<div class="floating-actions">'+
+      '<button class="icon-btn" data-action="bulk-move" aria-label="Переместить" title="Переместить">'+icon('moveTo',19)+'</button>'+
+      '<button class="icon-btn icon-btn-danger" data-action="bulk-delete" aria-label="Удалить" title="Удалить">'+icon('trash',19)+'</button>'+
+      '<button class="icon-btn" data-action="bulk-clear" aria-label="Отмена" title="Отмена">'+icon('close',19)+'</button>'+
+      '</div></div></div>';
+  }
+  function uploadPanelHtml(){
+    if(!state.uploads.length)return '';
+    return '<div class="floating" style="max-width:420px">'+state.uploads.map(function(it){
+      return '<div class="upload-item"><div class="upload-head">'+
+        '<span class="upload-name">'+escapeHtml(it.name)+'</span>'+
+        '<span class="upload-pct">'+Math.round(it.progress*100)+'%</span>'+
+        '</div><div class="upload-status">'+escapeHtml(it.status||'')+'</div>'+
+        '<div class="progress"><div class="progress-bar" style="transform:scaleX('+it.progress+')"></div></div></div>';
+    }).join('')+'</div>';
+  }
+  function sheetHtml(){
+    var m=state.modal;if(!m)return '';
+    var body='';
+    if(m.type==='new-folder'){
+      body='<h2 class="sheet-title">'+icon('folder',20)+'Новая папка</h2>'+
+        '<p class="sheet-text">Укажите название — файлы внутри неё можно искать и перемещать.</p>'+
+        '<input class="field" type="text" maxlength="64" placeholder="Например, Документы" data-focus-key="folder-name" autocomplete="off">'+
+        '<div class="sheet-actions">'+
+        '<button class="btn btn-ghost" data-action="modal-close">Отмена</button>'+
+        '<button class="btn btn-primary" data-action="create-folder">Создать папку</button>'+
+        '</div>';
+    }else if(m.type==='move'){
+      var items='<button class="picker-item info" data-action="move-to" data-id="0"><span class="ico">'+icon('file',17)+'</span><span>Без папки (корень)</span></button>';
+      items+=state.folders.map(function(f){
+        return '<button class="picker-item" data-action="move-to" data-id="'+escapeHtml(f.id)+'"><span class="ico">'+icon('folder',17)+'</span><span>'+escapeHtml(f.name)+'</span></button>';
+      }).join('');
+      body='<h2 class="sheet-title">'+icon('moveTo',20)+'Переместить</h2><p class="sheet-text">Файлов к перемещению: '+state.selection.length+'</p>'+
+        '<div class="picker">'+items+'</div>'+
+        '<div class="sheet-actions"><button class="btn btn-ghost" data-action="modal-close">Отмена</button></div>';
+    }else if(m.type==='confirm-delete'){
+      body='<h2 class="sheet-title" style="color:var(--danger)">'+icon('trash',20)+'Удалить файлы?</h2>'+
+        '<p class="sheet-text">Будет удалено: <b>'+state.selection.length+'</b>. Действие необратимо — файлы исчезнут и из хранилища, и из GitHub.</p>'+
+        '<div class="sheet-actions">'+
+        '<button class="btn btn-ghost" data-action="modal-close">Отмена</button>'+
+        '<button class="btn btn-danger" data-action="confirm-delete">Удалить</button>'+
+        '</div>';
+    }else if(m.type==='confirm-folder'){
+      body='<h2 class="sheet-title" style="color:var(--danger)">'+icon('trash',20)+'Удалить папку?</h2>'+
+        '<p class="sheet-text">Папка «<b>'+escapeHtml(m.name)+'</b>» будет удалена, а файлы из неё останутся в корне хранилища.</p>'+
+        '<div class="sheet-actions">'+
+        '<button class="btn btn-ghost" data-action="modal-close">Отмена</button>'+
+        '<button class="btn btn-danger" data-action="confirm-folder-delete" data-id="'+escapeHtml(m.id)+'">Удалить папку</button>'+
+        '</div>';
+    }else if(m.type==='actions'){
+      var f=findById(m.id);
+      var fname=f?f.name:'';
+      body='<h2 class="sheet-title">'+icon('more',20)+'Действия</h2>'+
+        (f?'<p class="sheet-text" style="margin-bottom:14px">'+escapeHtml(fname)+'</p>':'')+
+        '<div class="picker">'+
+        '<button class="picker-item info" data-action="download-one" data-id="'+escapeHtml(m.id)+'"><span class="ico">'+icon('download',17)+'</span><span>Скачать</span></button>'+
+        '<button class="picker-item" data-action="move-one" data-id="'+escapeHtml(m.id)+'"><span class="ico">'+icon('moveTo',17)+'</span><span>Переместить</span></button>'+
+        '<button class="picker-item danger" data-action="delete-one" data-id="'+escapeHtml(m.id)+'"><span class="ico">'+icon('trash',17)+'</span><span>Удалить</span></button>'+
+        '</div><div class="sheet-actions"><button class="btn btn-ghost" data-action="modal-close">Закрыть</button></div>';
+    }
+    return '<div class="sheet-backdrop" data-backdrop><div class="sheet" role="dialog" aria-modal="true"><div class="sheet-handle"></div>'+body+'</div></div>';
+  }
+  function dragHtml(){if(!state.dragging)return '';return '<div class="drop-overlay"><div class="drop-box">'+icon('upload',36)+'<span>Отпустите, чтобы загрузить</span></div></div>'}
+  function fabHtml(){
+    if(state.selection.length||state.uploads.length||state.modal)return '';
+    return '<button class="fab" data-action="pick-files" aria-label="Загрузить файлы" title="Загрузить файлы">'+icon('upload',24)+'</button>';
+  }
+
+  function render(){
+    var host=document.getElementById('app');
+    var active=document.activeElement;
+    var fk=active&&active.dataset?active.dataset.focusKey:null;
+    var caret=null;
+    if(fk&&typeof active.selectionStart==='number')caret=active.selectionStart;
+    host.innerHTML='<header class="app-header">'+headerHtml()+'</header>'+
+      '<main class="content">'+contentHtml()+'</main>'+
+      selectionBarHtml()+uploadPanelHtml()+fabHtml()+sheetHtml()+dragHtml();
+    if(fk){var n=host.querySelector('[data-focus-key="'+fk+'"]');if(n){n.focus();if(caret!=null&&typeof n.setSelectionRange==='function'){try{n.setSelectionRange(caret,caret)}catch(e){}}}}
+    if(tg&&tg.BackButton){if(state.view==='folder')tg.BackButton.show();else tg.BackButton.hide()}
+  }
+
+  /* ---------- Events ---------- */
+  var lpTimer=null,suppress=false,pressStart=null;
+  function cancelLP(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null}pressStart=null}
+  document.addEventListener('pointerdown',function(e){
+    var row=e.target.closest('[data-row-id]');if(!row||e.button!==0)return;
+    var id=row.dataset.rowId;
+    pressStart={x:e.clientX,y:e.clientY};
+    lpTimer=setTimeout(function(){
+      lpTimer=null;suppress=true;
+      if(state.selection.indexOf(id)<0)toggleSel(id);
+      if(navigator.vibrate)try{navigator.vibrate(10)}catch(e){}
+    },420);
+  });
+  document.addEventListener('pointerup',cancelLP);
+  document.addEventListener('pointercancel',cancelLP);
+  document.addEventListener('pointermove',function(e){
+    if(!pressStart||!lpTimer)return;
+    if(Math.abs(e.clientX-pressStart.x)>10||Math.abs(e.clientY-pressStart.y)>10)cancelLP();
+  });
+  document.addEventListener('scroll',cancelLP,true);
+
+  document.addEventListener('click',function(e){
+    var bd=e.target.closest('[data-backdrop]');
+    if(bd&&e.target===bd){state.modal=null;return}
+    if(suppress){suppress=false;return}
+    var el=e.target.closest('[data-action]');if(!el)return;
+    var a=el.dataset.action;
+    if(a==='open-folder'){openFolder(el.dataset.id,el.dataset.name||'Папка')}
+    else if(a==='back'){openRoot()}
+    else if(a==='reload'){refresh()}
+    else if(a==='new-folder'){state.modal={type:'new-folder'}}
+    else if(a==='create-folder'){createFolder()}
+    else if(a==='delete-folder'){state.modal={type:'confirm-folder',id:el.dataset.id,name:el.dataset.name}}
+    else if(a==='confirm-folder-delete'){deleteFolder(el.dataset.id,'')}
+    else if(a==='set-theme'){var p=el.dataset.theme;state.themePref=p;try{localStorage.setItem('storage.theme',p)}catch(e){}applyTheme(p)}
+    else if(a==='sort'){setSort(el.dataset.key)}
+    else if(a==='clear-search'){searchValue='';state.query=''}
+    else if(a==='zip'){downloadZip()}
+    else if(a==='pick-files'){document.getElementById('file-input').click()}
+    else if(a==='row-click'){
+      var id=el.dataset.id;
+      if(state.selection.length||e.ctrlKey||e.metaKey)toggleSel(id);
+      else{var f=findById(id);if(f)downloadFile(f)}
+    }
+    else if(a==='row-more'){state.modal={type:'actions',id:el.dataset.id}}
+    else if(a==='download-one'){var f2=findById(el.dataset.id);state.modal=null;if(f2)downloadFile(f2)}
+    else if(a==='move-one'){state.selection=[el.dataset.id];state.modal={type:'move'}}
+    else if(a==='delete-one'){state.selection=[el.dataset.id];state.modal={type:'confirm-delete'}}
+    else if(a==='bulk-move'){state.modal={type:'move'}}
+    else if(a==='bulk-delete'){state.modal={type:'confirm-delete'}}
+    else if(a==='bulk-clear'){clearSel()}
+    else if(a==='move-to'){var fid=el.dataset.id;moveSelected(fid==='0'?null:fid)}
+    else if(a==='confirm-delete'){deleteSelected()}
+    else if(a==='modal-close'){state.modal=null}
+  });
+
+  document.addEventListener('input',function(e){
+    if(e.target.dataset&&e.target.dataset.focusKey==='search')onSearch(e.target.value);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){
+      if(state.modal){state.modal=null;return}
+      if(state.selection.length){clearSel();return}
+      var a=document.activeElement;
+      if(a&&a.dataset&&a.dataset.focusKey==='search')a.blur();
+    }
+    if(e.key==='Enter'&&state.modal&&state.modal.type==='new-folder'){createFolder()}
+    var m=e.ctrlKey||e.metaKey;
+    if(m&&e.key==='a'){if(state.query||state.view==='folder'){e.preventDefault();selectVisible()}}
+    else if(m&&e.key==='f'){e.preventDefault();var si=document.querySelector('[data-focus-key="search"]');if(si)si.focus()}
+    else if(m&&e.key==='n'){e.preventDefault();state.modal={type:'new-folder'}}
+    else if(m&&e.key==='u'){e.preventDefault();document.getElementById('file-input').click()}
+  });
+
+  var fileInput=document.getElementById('file-input');
+  fileInput.addEventListener('change',function(){if(fileInput.files&&fileInput.files.length)uploadFiles(fileInput.files);fileInput.value=''});
+
+  var dragDepth=0;
+  window.addEventListener('dragenter',function(e){if(!e.dataTransfer)return;e.preventDefault();dragDepth++;state.dragging=true});
+  window.addEventListener('dragover',function(e){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='copy'});
+  window.addEventListener('dragleave',function(e){e.preventDefault();dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)state.dragging=false});
+  window.addEventListener('drop',function(e){e.preventDefault();dragDepth=0;state.dragging=false;if(e.dataTransfer&&e.dataTransfer.files.length)uploadFiles(e.dataTransfer.files)});
+
+  if(tg&&typeof tg.onEvent==='function')tg.onEvent('themeChanged',function(){if(state.themePref==='auto')applyTheme('auto')});
+  if(tg&&tg.BackButton&&typeof tg.BackButton.onClick==='function')tg.BackButton.onClick(function(){if(state.view==='folder')openRoot()});
+
+  applyTheme(state.themePref);
+  render();
+  refresh();
+})();
+</script>
+</body>
+</html>
